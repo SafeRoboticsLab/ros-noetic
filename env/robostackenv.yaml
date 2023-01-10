@@ -1,4 +1,4 @@
-name: robostackenv
+name: buildrobostackpkg
 channels:
 - robostack
 - conda-forge

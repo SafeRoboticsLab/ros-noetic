@@ -216,8 +216,8 @@ packages_select_by_deps:
   # - global-planner-tests
   # - image-geometry
   # - industrial-core
-  # - lanelet2
-  # - lanelet2-examples
+  - lanelet2
+  - lanelet2-examples
   # - locomove-base
   # - mir-dwb-critics
   # - mir-navigation
@@ -475,13 +475,13 @@ packages_select_by_deps:
   # - jsk-visualization
   # - kdl-parser
   # - kobuki-msgs
-  # - lanelet2-io
-  # - lanelet2-maps
-  # - lanelet2-projection
-  # - lanelet2-python
-  # - lanelet2-routing
-  # - lanelet2-traffic-rules
-  # - lanelet2-validation
+  - lanelet2-io
+  - lanelet2-maps
+  - lanelet2-projection
+  - lanelet2-python
+  - lanelet2-routing
+  - lanelet2-traffic-rules
+  - lanelet2-validation
   # - laser-cb-detector
   # - leo
   # - leo-desktop
@@ -788,7 +788,7 @@ packages_select_by_deps:
   # - kdl-parser-py
   # - key-teleop
   # - label-manager
-  # - lanelet2-core
+  - lanelet2-core
   # - laser-filtering
   # - laser-filters-jsk-patch
   # - laser-scan-densifier
@@ -835,7 +835,7 @@ packages_select_by_deps:
   # - moveit-runtime
   # - mpc-local-planner-msgs
   # - mrpt-msgs
-  # - mrt-cmake-modules
+  - mrt-cmake-modules
   # - multi-object-tracking-lidar
   # - multisense-description
   # - multisense-lib
