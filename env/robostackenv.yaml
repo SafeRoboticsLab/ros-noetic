@@ -1,6 +1,7 @@
 name: buildrobostackpkg
 channels:
 - robostack
+- robostack-staging
 - conda-forge
 dependencies:
 - python=3.9

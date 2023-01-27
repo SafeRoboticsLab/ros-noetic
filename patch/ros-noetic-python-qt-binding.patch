@@ -8,6 +8,18 @@ index 8db3c7b..892d81c 100644
    cmake/sip_helper.cmake
 +  cmake/pyproject.toml.in
    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/cmake)
+diff --git a/cmake/sip_configure.py b/cmake/sip_configure.py
+index 4886059..5ceeaa7 100644
+--- a/cmake/sip_configure.py
++++ b/cmake/sip_configure.py
+@@ -181,6 +181,7 @@ def split_paths(paths):
+ # Force c++14
+ if sys.platform == 'win32':
+     makefile.extra_cxxflags.append('/std:c++14')
++    makefile.extra_cxxflags.append('/DROS_BUILD_SHARED_LIBS=1')
+     # The __cplusplus flag is not properly set on Windows for backwards
+     # compatibilty. This flag sets it correctly
+     makefile.CXXFLAGS.append('/Zc:__cplusplus')
 diff --git a/cmake/pyproject.toml.in b/cmake/pyproject.toml.in
 new file mode 100644
 index 0000000..9353bab
@@ -42,7 +54,7 @@ index 0000000..9353bab
 +define-macros = [@SIP_EXTRA_DEFINES@]
 +exceptions = true
 diff --git a/cmake/sip_helper.cmake b/cmake/sip_helper.cmake
-index a055cf5..e30c04f 100644
+index a055cf5..5e058a7 100644
 --- a/cmake/sip_helper.cmake
 +++ b/cmake/sip_helper.cmake
 @@ -18,7 +18,7 @@ execute_process(
@@ -63,14 +75,14 @@ index a055cf5..e30c04f 100644
 +    COMMAND ${SIP_EXECUTABLE} -V
 +    OUTPUT_VARIABLE SIP_VERSION
 +    ERROR_QUIET)
-+  string(STRIP ${SIP_VERSION} SIP_VERSION)
-+  message(STATUS "SIP binding generator version: ${SIP_VERSION}")
++  # string(STRIP ${SIP_VERSION} SIP_VERSION)
++  # message(STATUS "SIP binding generator version: ${SIP_VERSION}")
 +endif()
 +
  #
  # Run the SIP generator and compile the generated code into a library.
  #
-@@ -89,32 +98,99 @@ function(build_sip_binding PROJECT_NAME SIP_FILE)
+@@ -89,32 +98,98 @@ function(build_sip_binding PROJECT_NAME SIP_FILE)
      # SIP configure doesn't handle CMake targets
      catkin_replace_imported_library_targets(LIBRARIES ${LIBRARIES})
  
@@ -81,7 +93,7 @@ index a055cf5..e30c04f 100644
 -        WORKING_DIRECTORY ${sip_SOURCE_DIR}
 -        COMMENT "Running SIP generator for ${PROJECT_NAME} Python bindings..."
 -    )
-+    if(${SIP_VERSION} VERSION_GREATER_EQUAL "5.0.0")
++    if(TRUE)
 +        # Since v5, SIP implements the backend per PEP 517, PEP 518
 +        # Here we synthesize `pyproject.toml` and run `pip install`
 +
@@ -105,36 +117,35 @@ index a055cf5..e30c04f 100644
 +        # SIP expects the libraries WITHOUT the file extension.
 +        set(SIP_LIBARIES "")
 +        set(SIP_LIBRARY_DIRS "")
++
 +        foreach(_x ${LIBRARIES} ${PYTHON_LIBRARIES})
-+          string(FIND "${_x}" "/" STARTSWITHSLASH)
-+          if("${STARTSWITHSLASH}" EQUAL 0)
-+            get_filename_component(_x_NAME "${_x}" NAME_WLE)
-+            get_filename_component(_x_DIR "${_x}" DIRECTORY)
-+            get_filename_component(_x "${_x_DIR}/${_x_NAME}" ABSOLUTE)
-+            STRING(REGEX REPLACE "^lib" "" _x_NAME_NOPREFIX ${_x_NAME})
-+            string(FIND "${_x_NAME_NOPREFIX}" "$<TARGET_FILE" out)
-+            if("${out}" EQUAL 0 OR (APPLE AND ${_x_NAME_NOPREFIX} STREQUAL "python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"))
++          get_filename_component(_x_NAME "${_x}" NAME_WLE)
++          get_filename_component(_x_DIR "${_x}" DIRECTORY)
++          get_filename_component(_x "${_x_DIR}/${_x_NAME}" ABSOLUTE)
++          STRING(REGEX REPLACE "^lib" "" _x_NAME_NOPREFIX ${_x_NAME})
++
++          string(FIND "${_x_NAME_NOPREFIX}" "$<TARGET_FILE" out)
++          string(FIND "${_x_NAME_NOPREFIX}" "::" out2)
++          if("${out}" EQUAL 0)
++            STRING(REGEX REPLACE "\\$<TARGET_FILE:" "" _x_NAME_NOPREFIX ${_x_NAME_NOPREFIX})
++            STRING(REGEX REPLACE ">" "" _x_NAME_NOPREFIX ${_x_NAME_NOPREFIX})
++            if(NOT "${out2}" EQUAL -1)
++              message(STATUS "IGNORE: ${_x_NAME_NOPREFIX}")
 +            else()
 +              set(SIP_LIBARIES "${SIP_LIBARIES},\"${_x_NAME_NOPREFIX}\"")
-+              set(SIP_LIBRARY_DIRS "${SIP_LIBRARY_DIRS},\"${_x_DIR}\"")
 +            endif()
 +          else()
-+            set(SIP_LIBARIES "${SIP_LIBARIES},\"${_x}\"")
++            set(SIP_LIBARIES "${SIP_LIBARIES},\"${_x_NAME_NOPREFIX}\"")
++            set(SIP_LIBRARY_DIRS "${SIP_LIBRARY_DIRS},\"${_x_DIR}\"")
 +          endif()
 +        endforeach()
-+
 +        string(REGEX REPLACE "^," "" SIP_LIBARIES ${SIP_LIBARIES})
 +        foreach(_x ${LIBRARY_DIRS})
 +          set(SIP_LIBRARY_DIRS "${SIP_LIBRARY_DIRS},\"${_x}\"")
 +        endforeach()
 +        string(REGEX REPLACE "^," "" SIP_LIBRARY_DIRS ${SIP_LIBRARY_DIRS})
-+        message(WARNING "SIP_LIBARIES: ${SIP_LIBARIES}")
-+        set(SIP_EXTRA_DEFINES "")
-+        foreach(_x ${EXTRA_DEFINES})
-+          set(SIP_EXTRA_DEFINES "${SIP_EXTRA_DEFINES},\"${_x}\"")
-+        endforeach()
-+        string(REGEX REPLACE "^," "" SIP_EXTRA_DEFINES ${SIP_EXTRA_DEFINES})
 +
++        message(WARNING "test lib dir: ${SIP_LIBRARY_DIRS}")
 +        # TODO:
 +        #   I don't know what to do about LDFLAGS_OTHER
 +        #   what's the equivalent construct in sip5?
@@ -145,7 +156,7 @@ index a055cf5..e30c04f 100644
 +        )
 +        add_custom_command(
 +            OUTPUT ${sip_LIBRARY_DIR}/lib${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}
-+            COMMAND ${PYTHON_EXECUTABLE} -m pip install . --target ${sip_LIBRARY_DIR} --no-deps
++            COMMAND ${PYTHON_EXECUTABLE} -m pip install . --target ${sip_LIBRARY_DIR} --no-deps --verbose
 +            DEPENDS ${sip_SIP_CONFIGURE} ${SIP_FILE} ${sip_DEPENDS}
 +            WORKING_DIRECTORY ${sip_BINARY_DIR}/sip
 +            COMMENT "Running SIP-build generator for ${PROJECT_NAME} Python bindings..."
